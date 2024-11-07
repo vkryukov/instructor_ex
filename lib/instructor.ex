@@ -419,6 +419,7 @@ defmodule Instructor do
     validation_context = Keyword.get(params, :validation_context, %{})
     max_retries = Keyword.get(params, :max_retries)
     mode = Keyword.get(params, :mode, :tools)
+    {return_raw_response, params} = Keyword.pop(params, :return_raw_response, false)
     params = params_for_mode(mode, response_model, params)
 
     model =
@@ -433,7 +434,13 @@ defmodule Instructor do
            {cast_all(model, params), raw_response},
          {%Ecto.Changeset{valid?: true} = changeset, _raw_response} <-
            {call_validate(response_model, changeset, validation_context), raw_response} do
-      {:ok, changeset |> Ecto.Changeset.apply_changes()}
+      changeset = changeset |> Ecto.Changeset.apply_changes()
+
+      if return_raw_response do
+        {:ok, changeset, raw_response}
+      else
+        {:ok, changeset}
+      end
     else
       {%Ecto.Changeset{} = changeset, raw_response} ->
         if max_retries > 0 do
